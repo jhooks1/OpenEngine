@@ -50,13 +50,13 @@ namespace Physic
         btScalar internalCapsuleHeight =  120;
         btScalar internalCapsuleWidth =  15;
 
-        internalCollisionShape = new btCapsuleShapeZ( internalCapsuleWidth, internalCapsuleHeight );
-        internalCollisionShape->setMargin( 0.1 );
+        internalCollisionShape = new btBoxShape(btVector3(14.64f * 2, 14.24f * 2, 33.25f * 2));
+        internalCollisionShape->setMargin( .1 );
 
         internalGhostObject->setCollisionShape( internalCollisionShape );
         internalGhostObject->setCollisionFlags( btCollisionObject::CF_CHARACTER_OBJECT );
 
-        mCharacter = new btKinematicCharacterController( externalGhostObject,internalGhostObject,btScalar( 40 ),1,4,20,9.8,0.2 );
+        mCharacter = new btKinematicCharacterController( internalGhostObject,internalGhostObject,btScalar( 40 ),1,4,20,9.8,0.2 );
         mCharacter->setUpAxis(btKinematicCharacterController::Z_AXIS);
         mCharacter->setUseGhostSweepTest(false);
 
