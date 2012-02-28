@@ -1,10 +1,13 @@
 #ifndef OENGINE_INPUT_DISPATCHER_H
 #define OENGINE_INPUT_DISPATCHER_H
 
+#include <cassert>
+#include <iostream>
+
+#include <mangle/input/event.hpp>
+
 #include "dispatch_map.hpp"
 #include "func_binder.hpp"
-#include <mangle/input/event.hpp>
-#include <assert.h>
 
 namespace OEngine {
 namespace Input {
@@ -47,7 +50,23 @@ struct Dispatcher : Mangle::Input::Event
     const _O &list = map.getList(index);
     _O::const_iterator it;
     for(it = list.begin(); it != list.end(); it++)
-      funcs.call(*it, p);
+    {
+      //catch exceptions thrown in the input handlers so that pressing a key
+      //doesn't cause OpenMw to crash
+      try
+      {
+          funcs.call(*it, p);
+      }
+      catch(const std::exception& e)
+      {
+          std::cerr << "Exception in input handler: " << e.what() << std::endl;
+      }
+      catch(...)
+      {
+          std::cerr << "Unknown exception in input handler" << std::endl;
+      }
+
+    }
   }
 };
 
