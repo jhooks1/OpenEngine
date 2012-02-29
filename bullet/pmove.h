@@ -5,9 +5,12 @@ Quake 3 Arena is copyright (C) 1999-2005 Id Software, Inc.
 */
 
 #pragma once
+#include <Ogre.h>
+#include <OgreMath.h>
+#include <float.h>
 
-#include "GameMath.h"
-#include "GameTime.h"
+//#include "GameMath.h"
+//#include "GameTime.h"
 
 // Forwards-declare it!
 struct Object;
@@ -17,7 +20,7 @@ struct Object;
 extern SceneInstance* global_lastscene;
 #endif*/
 
-static const Position3D halfExtents(14.64f * 2.0f, 33.25f * 2.0f, 14.24f * 2.0f);
+static const Ogre::Vector3 halfExtents(14.64f * 2, 14.24f * 2, 33.25f * 2);
 
 #define	MAX_CLIP_PLANES	5
 #define	OVERCLIP 1.001f
@@ -77,7 +80,7 @@ enum waterlevel_t : unsigned char
 	WL_UNDERWATER
 };
 
-#include "bprintf.h"
+//#include "bprintf.h"
 
 struct playerMove
 {
@@ -85,10 +88,10 @@ struct playerMove
 	{
 		playerStruct() : gravity(800.0f), speed(320.0f), pmove_framecount(20), groundEntityNum(ENTITYNUM_NONE), commandTime(40), move_type(PM_NORMAL), pm_time(0)
 		{
-			origin = Position3D(0.0f, 2500.0f, 0.0f);
-			velocity = Position3D(0.0f, 0.0f, 0.0f);
+			origin = Ogre::Vector3(0.0f, 2500.0f, 0.0f);
+			velocity = Ogre::Vector3(0.0f, 0.0f, 0.0f);
 
-			viewangles = Position3D(0.0f, 0.0f, 0.0f);
+			viewangles = Ogre::Vector3(0.0f, 0.0f, 0.0f);
 
 			delta_angles[0] = delta_angles[1] = delta_angles[2] = 0;
 
@@ -108,8 +111,8 @@ struct playerMove
 			speed /= 1.25f;
 		}
 
-		Position3D velocity;
-		Position3D origin;
+		Ogre::Vector3 velocity;
+		Ogre::Vector3 origin;
 		float gravity; // default = 800
 		float speed; // default = 320
 
@@ -117,7 +120,7 @@ struct playerMove
 
 		int pm_time;
 
-		Position3D viewangles;
+		Ogre::Vector3 viewangles;
 
 		int groundEntityNum;
 
@@ -131,8 +134,8 @@ struct playerMove
 		pmtype_t move_type;
 
 		TimeTicks last_compute_time;
-		Position3D lastframe_origin;
-		Position3D lerp_multiplier;
+		Ogre::Vector3 lastframe_origin;
+		Ogre::Vector3 lerp_multiplier;
 	} ps;
 
 	struct playercmd
@@ -183,4 +186,4 @@ struct playerMove
 
 void Pmove (playerMove* const pmove);
 void Ext_UpdateViewAngles(playerMove* const pm);
-void AngleVectors( const Position3D& angles, Position3D* const forward, Position3D* const right, Position3D* const up) ;
+void AngleVectors( const Ogre::Vector3& angles, Ogre::Vector3* const forward, Ogre::Vector3* const right, Ogre::Vector3* const up) ;

@@ -8,24 +8,23 @@ Quake 3 Arena is copyright (C) 1999-2005 Id Software, Inc.
 
 #define COMPILING_PMOVE
 
-#include "Scene.h"
 
 #include "pmove.h"
 
 #include "trace.h"
 
-#include "bprintf.h"
+//#include "bprintf.h"
 
-#include "..\..\ESMParser\ESMParser\CELL.h"
+//#include "..\..\ESMParser\ESMParser\CELL.h"
 
-#include "GameTime.h"
+//#include "GameTime.h"
 
-#include "Object.h"
+//#include "Object.h"
 
-#include "Sound.h"
+//#include "Sound.h"
 
-#include "..\..\ESMParser\ESMParser\SNDG.h"
-#include "..\..\ESMParser\ESMParser\SOUN.h"
+//#include "..\..\ESMParser\ESMParser\SNDG.h"
+//#include "..\..\ESMParser\ESMParser\SOUN.h"
 
 #include <map>
 
@@ -36,18 +35,18 @@ void PM_AirMove();
 
 static playerMove* pm = NULL;
 
-extern std::map<CellCoords, CELL* const> ExtCellLookup;
+//extern std::map<CellCoords, CELL* const> ExtCellLookup;
 
 static struct playermoveLocal
 {
 	playermoveLocal() : frametime(1.0f / 20.0f), groundPlane(true), traceObj(NULL), walking(true), msec(50)
 	{
-		forward = Position3D(0.0f, 0.0f, 0.0f);
-		right = Position3D(0.0f, 0.0f, 0.0f);
-		up = Position3D(0.0f, 0.0f, 0.0f);
+		forward = Ogre::Vector3(0.0f, 0.0f, 0.0f);
+		right = Ogre::Vector3(0.0f, 0.0f, 0.0f);
+		up = Ogre::Vector3(0.0f, 0.0f, 0.0f);
 
-		previous_origin = Position3D(0.0f, 0.0f, 0.0f);
-		previous_velocity = Position3D(0.0f, 0.0f, 0.0f);
+		previous_origin = Ogre::Vector3(0.0f, 0.0f, 0.0f);
+		previous_velocity = Ogre::Vector3(0.0f, 0.0f, 0.0f);
 	}
 
 	traceResults groundTrace;
@@ -57,13 +56,13 @@ static struct playermoveLocal
 	float frametime; // in seconds (usually something like 0.01f)
 	float impactSpeed;
 
-	Position3D forward;
-	Position3D right;
-	Position3D up;
+	Ogre::Vector3 forward;
+	Ogre::Vector3 right;
+	Ogre::Vector3 up;
 
 	int msec;
 
-	Position3D previous_origin, previous_velocity;
+	Ogre::Vector3 previous_origin, previous_velocity;
 
 	int previous_waterlevel; // the waterlevel before this pmove
 
@@ -75,7 +74,7 @@ static struct playermoveLocal
 
 } pml;
 
-static inline void PM_ClipVelocity(const Position3D& in, const Position3D& normal, Position3D& out, const float overbounce)
+static inline void PM_ClipVelocity(const Ogre::Vector3& in, const Ogre::Vector3& normal, Ogre::Vector3& out, const float overbounce)
 {
 	float	backoff;
 	//float	change;
@@ -83,7 +82,7 @@ static inline void PM_ClipVelocity(const Position3D& in, const Position3D& norma
 	
 	// backoff = in dot normal
 	//backoff = DotProduct (in, normal);
-	backoff = in.dot(normal);
+	backoff = in.dotProduct(normal);
 	
 	if ( backoff < 0 )
 		backoff *= overbounce;
@@ -97,19 +96,19 @@ static inline void PM_ClipVelocity(const Position3D& in, const Position3D& norma
 		change = normal[i]*backoff;
 		out[i] = in[i] - change;
 	}*/
-	float changex = normal.xPos * backoff;
-	out.xPos = in.xPos - changex;
-	float changey = normal.yPos * backoff;
-	out.yPos = in.yPos - changey;
-	float changez = normal.zPos * backoff;
-	out.zPos = in.zPos - changez;
+	float changex = normal.x * backoff;
+	out.x = in.x - changex;
+	float changey = normal.y * backoff;
+	out.y = in.y - changey;
+	float changez = normal.z * backoff;
+	out.z = in.z - changez;
 }
 
-float VectorNormalize2( const Position3D& v, Position3D& out) 
+float VectorNormalize2( const Ogre::Vector3& v, Ogre::Vector3& out) 
 {
 	float	length, ilength;
 
-	length = v.xPos * v.xPos + v.yPos * v.yPos + v.zPos * v.zPos;
+	length = v.x * v.x+ v.y * v.y + v.z * v.z;
 	length = sqrt(length);
 
 	if (length)
@@ -118,16 +117,16 @@ float VectorNormalize2( const Position3D& v, Position3D& out)
 //	  assert( ((Q_fabs(v[0])!=0.0f) || (Q_fabs(v[1])!=0.0f) || (Q_fabs(v[2])!=0.0f)) );
 #endif
 		ilength = 1 / length;
-		out.xPos = v.xPos * ilength;
-		out.yPos = v.yPos * ilength;
-		out.zPos = v.zPos * ilength;
+		out.x= v.x * ilength;
+		out.y = v.y * ilength;
+		out.z = v.z * ilength;
 	} else 
 	{
 #ifndef Q3_VM // bk0101022 - FPE related
 //	  assert( ((Q_fabs(v[0])==0.0f) && (Q_fabs(v[1])==0.0f) && (Q_fabs(v[2])==0.0f)) );
 #endif
 		//VectorClear( out );
-		out.clear();
+		out.x = 0; out.y = 0; out.z = 0;
 	}
 		
 	return length;
@@ -135,11 +134,11 @@ float VectorNormalize2( const Position3D& v, Position3D& out)
 }
 
 
-float VectorNormalize(Position3D& out) 
+float VectorNormalize(Ogre::Vector3& out) 
 {
 	float	length, ilength;
 
-	length = out.xPos * out.xPos + out.yPos * out.yPos + out.zPos * out.zPos;
+	length = out.x * out.x + out.y * out.y + out.z * out.z;
 	length = sqrt(length);
 
 	if (length)
@@ -148,9 +147,9 @@ float VectorNormalize(Position3D& out)
 //	  assert( ((Q_fabs(v[0])!=0.0f) || (Q_fabs(v[1])!=0.0f) || (Q_fabs(v[2])!=0.0f)) );
 #endif
 		ilength = 1 / length;
-		out.xPos = out.xPos * ilength;
-		out.yPos = out.yPos * ilength;
-		out.zPos = out.zPos * ilength;
+		out.x = out.x * ilength;
+		out.y = out.y * ilength;
+		out.z = out.z * ilength;
 	} 
 		
 	return length;
@@ -168,19 +167,19 @@ Returns qtrue if the velocity was clipped in some way
 bool	PM_SlideMove( bool gravity ) 
 {
 	int			bumpcount, numbumps;
-	Position3D		dir;
+	Ogre::Vector3		dir;
 	float		d;
 	int			numplanes;
-	Position3D		planes[MAX_CLIP_PLANES];
-	Position3D		primal_velocity;
-	Position3D		clipVelocity;
+	Ogre::Vector3		planes[MAX_CLIP_PLANES];
+	Ogre::Vector3		primal_velocity;
+	Ogre::Vector3		clipVelocity;
 	int			i, j, k;
 	struct traceResults	trace;
-	Position3D		end;
+	Ogre::Vector3		end;
 	float		time_left;
 	float		into;
-	Position3D		endVelocity;
-	Position3D		endClipVelocity;
+	Ogre::Vector3		endVelocity;
+	Ogre::Vector3		endClipVelocity;
 	
 	numbumps = 4;
 
@@ -194,14 +193,14 @@ bool	PM_SlideMove( bool gravity )
 		//VectorCopy( pm->ps->velocity, endVelocity );
 		endVelocity = pm->ps.velocity;
 		//endVelocity[2] -= pm->ps->gravity * pml.frametime;
-		endVelocity.yPos -= pm->ps.gravity * pml.frametime;
+		endVelocity.y -= pm->ps.gravity * pml.frametime;
 
 		// pm->ps->velocity = avg(pm->ps->velocity.z, endVelocity.z)
 		//pm->ps->velocity[2] = ( pm->ps->velocity[2] + endVelocity[2] ) * 0.5;
-		pm->ps.velocity.yPos = (pm->ps.velocity.yPos + endVelocity.yPos) * 0.5f;
+		pm->ps.velocity.y= (pm->ps.velocity.y + endVelocity.y) * 0.5f;
 
 		//primal_velocity[2] = endVelocity[2];
-		primal_velocity.yPos = endVelocity.yPos;
+		primal_velocity.y = endVelocity.y;
 
 		if ( pml.groundPlane ) 
 			// slide along the ground plane
@@ -236,13 +235,13 @@ bool	PM_SlideMove( bool gravity )
 		// see if we can make it there
 		//pm->trace ( &trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask);
 		//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&(end), *(const D3DXVECTOR3* const)&(pm->ps.velocity), 0, pml.traceObj);
-		newtrace(&trace, pm->ps.origin, end, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+		newtrace(&trace, pm->ps.origin, end, halfExtents, Ogre::Math.DegreesToRadians (pm->ps.viewangles.y), pml.traceObj);
 
 		if (trace.allsolid) 
 		{
 			// entity is completely trapped in another solid
 			//pm->ps->velocity[2] = 0;	// don't build up falling damage, but allow sideways acceleration
-			pm->ps.velocity.yPos = 0;
+			pm->ps.velocity.y = 0;
 			return true;
 		}
 
@@ -263,7 +262,7 @@ bool	PM_SlideMove( bool gravity )
 		{
 			// this shouldn't really happen
 			//VectorClear( pm->ps->velocity );
-			pm->ps.velocity.clear();
+			pm->ps.velocity = Ogre::Vector3(0,0,0);
 			return true;
 		}
 
@@ -299,7 +298,7 @@ bool	PM_SlideMove( bool gravity )
 		for ( i = 0 ; i < numplanes ; i++ ) 
 		{
 			//into = DotProduct( pm->ps->velocity, planes[i] );
-			into = pm->ps.velocity.dot(planes[i]);
+			into = pm->ps.velocity.dotProduct(planes[i]);
 			if ( into >= 0.1 )
 				continue;		// move doesn't interact with the plane
 
@@ -320,7 +319,7 @@ bool	PM_SlideMove( bool gravity )
 				if ( j == i )
 					continue;
 
-				if (clipVelocity.dot(planes[j]) >= 0.1)
+				if (clipVelocity.dotProduct(planes[j]) >= 0.1)
 				//if ( DotProduct( clipVelocity, planes[j] ) >= 0.1 )
 					continue;		// move doesn't interact with the plane
 
@@ -329,34 +328,35 @@ bool	PM_SlideMove( bool gravity )
 				PM_ClipVelocity( endClipVelocity, planes[j], endClipVelocity, OVERCLIP );
 
 				// see if it goes back into the first clip plane
-				if (clipVelocity.dot(planes[i]) >= 0)
+				if (clipVelocity.dotProduct(planes[i]) >= 0)
 				//if ( DotProduct( clipVelocity, planes[i] ) >= 0 )
 					continue;
 
 
 				// slide the original velocity along the crease
 				//dProduct (planes[i], planes[j], dir);
-				D3DXVec3Cross( (D3DXVECTOR3* const)&dir, (const D3DXVECTOR3* const)&(planes[i]), (const D3DXVECTOR3* const)&(planes[j]) );
+				dir = planes[i].crossProduct(planes[j]) ;
 
 				//VectorNormalize( dir );
 				//D3DXVec3Normalize( (D3DXVECTOR3* const)&dir, (const D3DXVECTOR3* const)&dir);
 				VectorNormalize(dir);
 
 				//d = DotProduct( dir, pm->ps->velocity );
-				d = dir.dot(pm->ps.velocity);
+				d = dir.dotProduct(pm->ps.velocity);
 
 				//VectorScale( dir, d, clipVelocity );
 				clipVelocity = dir * d;
 
 				//CrossProduct (planes[i], planes[j], dir);
-				D3DXVec3Cross( (D3DXVECTOR3* const)&dir, (const D3DXVECTOR3* const)&(planes[i]), (const D3DXVECTOR3* const)&(planes[j]) );
+				dir = planes[i].crossProduct(planes[j]) ;
+		
 
 				//VectorNormalize( dir );
 				//D3DXVec3Normalize( (D3DXVECTOR3* const)&dir, (const D3DXVECTOR3* const)&dir);
 				VectorNormalize(dir);
 
 				//d = DotProduct( dir, endVelocity );
-				d = dir.dot(endVelocity);
+				d = dir.dotProduct(endVelocity);
 
 				//VectorScale( dir, d, endClipVelocity );
 				endClipVelocity = dir * d;
@@ -367,14 +367,14 @@ bool	PM_SlideMove( bool gravity )
 					if ( k == i || k == j )
 						continue;
 
-					if (clipVelocity.dot(planes[k]) >= 0.1)
+					if (clipVelocity.dotProduct(planes[k]) >= 0.1)
 					//if ( DotProduct( clipVelocity, planes[k] ) >= 0.1 )
 						continue;		// move doesn't interact with the plane
 
 					// stop dead at a tripple plane interaction
 					//VectorClear( pm->ps->velocity );
-					dbprintf("Stop dead at a triple plane interaction\n");
-					pm->ps.velocity.clear();
+					printf("Stop dead at a triple plane interaction\n");
+					pm->ps.velocity = Ogre::Vector3(0,0,0);
 					return true;
 				}
 			}
@@ -410,12 +410,12 @@ PM_StepSlideMove
 */
 int PM_StepSlideMove( bool gravity ) 
 {
-	Position3D		start_o, start_v;
-	Position3D		down_o, down_v;
+	Ogre::Vector3		start_o, start_v;
+	Ogre::Vector3		down_o, down_v;
 	traceResults		trace;
 //	float		down_dist, up_dist;
 //	vec3_t		delta, delta2;
-	Position3D		up, down;
+	Ogre::Vector3		up, down;
 	float		stepSize;
 
 	// start_o = pm->ps->origin
@@ -432,20 +432,20 @@ int PM_StepSlideMove( bool gravity )
 	// down = start_o - vec3(0, 0, STEPSIZE)
 	//VectorCopy(start_o, down);
 	down = start_o;
-	down.yPos -= STEPSIZE;
+	down.y -= STEPSIZE;
 
 	//pm->trace (&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, start_o, down, , 0, pml.scene);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&start_o, *(const D3DXVECTOR3* const)&down, D3DXVECTOR3(0.0f, -STEPSIZE, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, start_o, down, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+	newtrace(&trace, start_o, down, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
 	
 	// up = vec3(0, 0, 1)
 	//VectorSet(up, 0, 0, 1);
-	up = Position3D(0.0f, 1.0f, 0.0f);
+	up = Ogre::Vector3(0.0f, 1.0f, 0.0f);
 
 	// never step up when you still have up velocity
 	//if ( pm->ps->velocity[2] > 0 && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7)) 
-	if (pm->ps.velocity.yPos > 0 && (
+	if (pm->ps.velocity.y > 0 && (
 		trace.fraction == 1.0 || trace.planenormal.dot(up) < 0.7
 		) )
 		return 2;
@@ -462,12 +462,12 @@ int PM_StepSlideMove( bool gravity )
 	//VectorCopy (start_o, up);
 	up = start_o;
 	//up[2] += STEPSIZE;
-	up.yPos += STEPSIZE;
+	up.y += STEPSIZE;
 
 	// test the player position if they were a stepheight higher
 	//pm->trace (&trace, start_o, pm->mins, pm->maxs, up, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&start_o, *(const D3DXVECTOR3* const)&up, D3DXVECTOR3(0.0f, STEPSIZE, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, start_o, up, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+	newtrace(&trace, start_o, up, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
 	if ( trace.allsolid ) 
 	{
 		//if ( pm->debugLevel ) 
@@ -477,7 +477,7 @@ int PM_StepSlideMove( bool gravity )
 	}
 
 	//stepSize = trace.endpos[2] - start_o[2];
-	stepSize = trace.endpos.yPos - start_o.yPos;
+	stepSize = trace.endpos.y - start_o.y;
 
 	// try slidemove from this position
 	//VectorCopy (trace.endpos, pm->ps->origin); // pm->ps->origin = trace.endpos
@@ -493,12 +493,12 @@ int PM_StepSlideMove( bool gravity )
 	//VectorCopy (pm->ps->origin, down);
 	down = pm->ps.origin;
 	//down[2] -= stepSize;
-	down.yPos -= stepSize;
+	down.y -= stepSize;
 
 
 	//pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&down, D3DXVECTOR3(0.0f, -STEPSIZE, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, pm->ps.origin, down, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+	newtrace(&trace, pm->ps.origin, down, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
 	if ( !trace.allsolid )
 		//VectorCopy (trace.endpos, pm->ps->origin);
 		pm->ps.origin = trace.endpos;
@@ -512,25 +512,25 @@ int PM_StepSlideMove( bool gravity )
 		float	delta;
 
 		//delta = pm->ps->origin[2] - start_o[2];
-		delta = pm->ps.origin.yPos - start_o.yPos;
+		delta = pm->ps.origin.y - start_o.y;
 		if ( delta > 2 ) 
 		{
 			if (gravity)
-				bprintf("g on: %f ", delta);
+				printf("g on: %f ", delta);
 			else
-				bprintf("g off: %f ",  delta);
+				printf("g off: %f ",  delta);
 
 			if ( delta < 7 ) 
-				bprintf("stepped 3 < x < 7\n");
+				printf("stepped 3 < x < 7\n");
 				//PM_AddEvent( EV_STEP_4 );
 			else if ( delta < 11 ) 
-				bprintf("stepped 7 < x < 11\n");
+				printf("stepped 7 < x < 11\n");
 				//PM_AddEvent( EV_STEP_8 );
 			else if ( delta < 15 ) 
-				bprintf("stepped 11 < x < 15\n");
+				printf("stepped 11 < x < 15\n");
 				//PM_AddEvent( EV_STEP_12 );
 			else 
-				bprintf("stepped 15+\n");
+				printf("stepped 15+\n");
 				//PM_AddEvent( EV_STEP_16 );
 				
 		}
@@ -543,12 +543,12 @@ int PM_StepSlideMove( bool gravity )
 
 void PM_Friction(void)
 {
-	Position3D	vec;
+	Ogre::Vector3	vec;
 	float* vel;
 	float	speed, newspeed, control;
 	float	drop;
 	
-	vel = &(pm->ps.velocity.xPos);
+	vel = &(pm->ps.velocity.x);
 	
 	// vec = vel
 	//VectorCopy( vel, vec );
@@ -556,7 +556,7 @@ void PM_Friction(void)
 
 	if ( pml.walking )
 		//vec[2] = 0;	// ignore slope movement
-		vec.yPos = 0;
+		vec.y = 0;
 
 	//speed = VectorLength(vec);
 	speed = vec.length();
@@ -565,7 +565,7 @@ void PM_Friction(void)
 		vel[0] = 0;
 		vel[2] = 0;		// allow sinking underwater
 		// FIXME: still have z friction underwater?
-		//bprintf("Static friction (vec = [%f, %f, %f]) (vec.length = %f)\n", vec.xPos, vec.yPos, vec.zPos, speed);
+		//bprintf("Static friction (vec = [%f, %f, %f]) (vec.length = %f)\n", vec.x, vec.y, vec.z, speed);
 		return;
 	}
 
@@ -634,7 +634,7 @@ float PM_CmdScale(playerMove::playercmd* const cmd)
 	return scale;
 }
 
-static void PM_Accelerate( Position3D& wishdir, float wishspeed, float accel )
+static void PM_Accelerate( Ogre::Vector3& wishdir, float wishspeed, float accel )
 {
 //	int			i;
 	float		addspeed, accelspeed, currentspeed;
@@ -683,7 +683,7 @@ static bool PM_CheckJump(void)
 	//pm->ps->pm_flags |= PMF_JUMP_HELD;
 
 	pm->ps.groundEntityNum = ENTITYNUM_NONE;
-	pm->ps.velocity.yPos = JUMP_VELOCITY;
+	pm->ps.velocity.y = JUMP_VELOCITY;
 	//PM_AddEvent( EV_JUMP );
 
 	/*if ( pm->cmd.forwardmove >= 0 ) 
@@ -704,10 +704,10 @@ static void PM_WaterMove( playerMove* const pm )
 {
 	//int		i;
 	//vec3_t	wishvel;
-	Position3D wishvel;
+	Ogre::Vector3 wishvel;
 	float	wishspeed;
 	//vec3_t	wishdir;
-	Position3D wishdir;
+	Ogre::Vector3 wishdir;
 	float	scale;
 	float	vel;
 
@@ -747,6 +747,7 @@ static void PM_WaterMove( playerMove* const pm )
 
 			lastWasLeft = !lastWasLeft;
 
+			/*
 			namestruct defaultCreature;
 			const SNDG* const sndg = SNDG::GetFromMap(defaultCreature, lastWasLeft ? SNDG::r_swim : SNDG::l_swim);
 			if (sndg)
@@ -757,7 +758,8 @@ static void PM_WaterMove( playerMove* const pm )
 				{
 					PlaySound2D(soun->soundFilename, soun->soundData->GetVolumeFloat() );
 				}
-			}
+			}*/
+			//Sound, ignore for now -- jhooks1
 		}
 	}
 
@@ -771,9 +773,9 @@ static void PM_WaterMove( playerMove* const pm )
 		wishvel[1] = 0;
 		wishvel[2] = -60;		// sink towards bottom
 		*/
-		wishvel.xPos = 0;
-		wishvel.yPos = -60;
-		wishvel.zPos = 0;
+		wishvel.x = 0;
+		wishvel.y = -60;
+		wishvel.z = 0;
 	} 
 	else 
 	{
@@ -782,7 +784,7 @@ static void PM_WaterMove( playerMove* const pm )
 		wishvel = pml.forward * scale * pm->cmd.forwardmove + pml.right * scale * pm->cmd.rightmove;
 
 		//wishvel[2] += scale * pm->cmd.upmove;
-		wishvel.yPos += pm->cmd.upmove * scale;
+		wishvel.y += pm->cmd.upmove * scale;
 	}
 
 	//VectorCopy (wishvel, wishdir);
@@ -796,7 +798,7 @@ static void PM_WaterMove( playerMove* const pm )
 
 	// make sure we can go up slopes easily under water
 	//if ( pml.groundPlane && DotProduct( pm->ps->velocity, pml.groundTrace.plane.normal ) < 0 ) 
-	if (pml.groundPlane && pm->ps.velocity.dot(pml.groundTrace.planenormal) < 0.0f)
+	if (pml.groundPlane && pm->ps.velocity.dotProduct(pml.groundTrace.planenormal) < 0.0f)
 	{
 		//vel = VectorLength(pm->ps->velocity);
 		vel = pm->ps.velocity.length();
@@ -822,9 +824,9 @@ PM_WalkMove
 static void PM_WalkMove( playerMove* const pmove ) 
 {
 //	int			i;
-	Position3D		wishvel;
+	Ogre::Vector3		wishvel;
 	float		fmove, smove;
-	Position3D		wishdir;
+	Ogre::Vector3		wishdir;
 	float		wishspeed;
 	float		scale;
 	playerMove::playercmd cmd;
@@ -832,7 +834,7 @@ static void PM_WalkMove( playerMove* const pmove )
 	float		vel;
 
 	if ( pm->ps.waterlevel > 2 && //DotProduct( pml.forward, pml.groundTrace.plane.normal ) > 0 ) 
-		pml.forward.dot(pml.groundTrace.planenormal) > 0.0f)
+		pml.forward.dotProduct(pml.groundTrace.planenormal) > 0.0f)
 	{
 		// begin swimming
 		PM_WaterMove(pmove);
@@ -847,7 +849,7 @@ static void PM_WalkMove( playerMove* const pmove )
 			PM_WaterMove(pmove);
 		else
 			PM_AirMove();
-		bprintf("Jumped away\n");
+		printf("Jumped away\n");
 		return;
 	}
 
@@ -862,8 +864,8 @@ static void PM_WalkMove( playerMove* const pmove )
 				if (pmove->traceObj->incellptr->GetHasWater() )
 				{
 					const float waterHeight = pmove->traceObj->incellptr->GetWaterHeight();
-					const float waterSoundStepHeight = waterHeight + halfExtents.yPos;
-					if (pmove->ps.origin.yPos < waterSoundStepHeight)
+					const float waterSoundStepHeight = waterHeight + halfExtents.y;
+					if (pmove->ps.origin.y < waterSoundStepHeight)
 						step_underwater = true;
 				}
 			}
@@ -884,15 +886,17 @@ static void PM_WalkMove( playerMove* const pmove )
 
 			if (step_underwater)
 			{
+				/*
 				const namestruct ns(lastWasLeft ? "FootWaterRight" : "FootWaterLeft");
 				const SOUN* const soun = SOUN::GetSound(ns);
 				if (soun)
 				{
 					PlaySound2D(soun->soundFilename, soun->soundData->GetVolumeFloat() );
-				}
+				}*/
 			}
 			else
 			{
+				/*
 				namestruct defaultCreature;
 				const SNDG* const sndg = SNDG::GetFromMap(defaultCreature, lastWasLeft ? SNDG::r_foot : SNDG::l_foot);
 				if (sndg)
@@ -903,14 +907,14 @@ static void PM_WalkMove( playerMove* const pmove )
 					{
 						PlaySound2D(soun->soundFilename, soun->soundData->GetVolumeFloat() );
 					}
-				}
+				}*/
 			}
 		}
 	}
 
 	PM_Friction ();
 
-	//bprintf("vel: (%f, %f, %f)\n", pm->ps.velocity.xPos, pm->ps.velocity.yPos, pm->ps.velocity.zPos);
+	//bprintf("vel: (%f, %f, %f)\n", pm->ps.velocity.x, pm->ps.velocity.y, pm->ps.velocity.z);
 
 	fmove = pm->cmd.forwardmove;
 	smove = pm->cmd.rightmove;
@@ -923,19 +927,19 @@ static void PM_WalkMove( playerMove* const pmove )
 
 	// project moves down to flat plane
 	//pml.forward[2] = 0;
-	pml.forward.yPos = 0;
+	pml.forward.y = 0;
 
 	//pml.right[2] = 0;
-	pml.right.yPos = 0;
+	pml.right.y = 0;
 
 	// project the forward and right directions onto the ground plane
 	PM_ClipVelocity (pml.forward, pml.groundTrace.planenormal, pml.forward, OVERCLIP );
 	PM_ClipVelocity (pml.right, pml.groundTrace.planenormal, pml.right, OVERCLIP );
 	//
 	//VectorNormalize (pml.forward);
-	D3DXVec3Normalize( (D3DXVECTOR3* const)(&(pml.forward) ), (const D3DXVECTOR3* const)(&(pml.forward) ) );
-	//VectorNormalize (pml.right);
-	D3DXVec3Normalize( (D3DXVECTOR3* const)(&(pml.right) ), (const D3DXVECTOR3* const)(&(pml.right) ) );
+	pml.forward = pml.forward.normalise();
+	pml.right = pml.right.normalise();
+	
 
 	// wishvel = (pml.forward * fmove) + (pml.right * smove);
 	//for ( i = 0 ; i < 3 ; i++ ) 
@@ -1001,14 +1005,14 @@ static void PM_WalkMove( playerMove* const pmove )
 
 	// don't decrease velocity when going up or down a slope
 	//VectorNormalize(pm->ps->velocity);
-	D3DXVec3Normalize( (D3DXVECTOR3* const)&(pm->ps.velocity), (const D3DXVECTOR3* const)&(pm->ps.velocity) );
-
+	pm->ps.velocity = pm->ps.velocity.normalise();
+	
 	//VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
 	pm->ps.velocity = pm->ps.velocity * vel;
 
 	// don't do anything if standing still
 	//if (!pm->ps->velocity[0] && !pm->ps->velocity[1])
-	if (!pm->ps.velocity.xPos && !pm->ps.velocity.zPos)
+	if (!pm->ps.velocity.x && !pm->ps.velocity.z)
 		return;
 
 	PM_StepSlideMove( false );
@@ -1049,58 +1053,58 @@ void PM_UpdateViewAngles( playerMove::playerStruct* const ps, playerMove::player
 				temp = -16000;
 			}*/
 		}
-		(&(ps->viewangles.xPos) )[i] = SHORT2ANGLE(temp);
+		(&(ps->viewangles.x) )[i] = SHORT2ANGLE(temp);
 		//cmd->angles[i] += ps->delta_angles[i];
 	}
 	//ps->delta_angles[0] = ps->delta_angles[1] = ps->delta_angles[2] = 0;
 
 }
 
-void AngleVectors( const Position3D& angles, Position3D* const forward, Position3D* const right, Position3D* const up) 
+void AngleVectors( const Ogre::Vector3& angles, Ogre::Vector3* const forward, Ogre::Vector3* const right, Ogre::Vector3* const up) 
 {
 	float		angle;
 	static float		sr, sp, sy, cr, cp, cy;
 	// static to help MS compiler fp bugs
 
 	//angle = angles[YAW] * (M_PI*2 / 360);
-	angle = angles.xPos * (M_PI * 2.0f / 360.0f);
+	angle = angles.x * (M_PI * 2.0f / 360.0f);
 	sp = sinf(angle);
 	cp = cosf(angle);
 
 	//angle = angles[PITCH] * (M_PI*2 / 360);
-	angle = angles.yPos * (-M_PI * 2.0f / 360.0f);
+	angle = angles.y * (-M_PI * 2.0f / 360.0f);
 	sy = sinf(angle);
 	cy = cosf(angle);
 
 	//angle = angles[ROLL] * (M_PI*2 / 360);
-	angle = angles.zPos * (M_PI * 2.0f / 360.0f);
+	angle = angles.z * (M_PI * 2.0f / 360.0f);
 	sr = sinf(angle);
 	cr = cosf(angle);
 
 	if (forward)
 	{
-		forward->xPos = cp * cy;
-		forward->zPos = cp * sy;
-		forward->yPos = -sp;
+		forward->x = cp * cy;
+		forward->z = cp * sy;
+		forward->y = -sp;
 	}
 	if (right)
 	{
-		right->xPos = (-1 * sr * sp * cy + -1 * cr * -sy);
-		right->zPos = (-1 * sr * sp * sy + -1 * cr * cy);
-		right->yPos = 0.0f;//-1 * sp * cp;
+		right->x = (-1 * sr * sp * cy + -1 * cr * -sy);
+		right->z = (-1 * sr * sp * sy + -1 * cr * cy);
+		right->y = 0.0f;//-1 * sp * cp;
 	}
 	if (up)
 	{
-		up->xPos = (cr * sp * cy + -sr * -sy);
-		up->zPos = (cr * sp * sy + -sr * cy);
-		up->yPos = cr * cp;
+		up->x = (cr * sp * cy + -sr * -sy);
+		up->z = (cr * sp * sy + -sr * cy);
+		up->y = cr * cp;
 	}
 }
 
 void PM_GroundTraceMissed()
 {
 	traceResults		trace;
-	Position3D		point;
+	Ogre::Vector3		point;
 
 	if ( pm->ps.groundEntityNum != ENTITYNUM_NONE ) 
 	{
@@ -1113,11 +1117,11 @@ void PM_GroundTraceMissed()
 		//VectorCopy( pm->ps->origin, point );
 		point = pm->ps.origin;
 		//point[2] -= 64;
-		point.yPos -= 64;
+		point.y -= 64;
 
 		//pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 		//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, -64.0f, 0.0f), 0, pml.traceObj);
-		newtrace(&trace, pm->ps.origin, point, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+		newtrace(&trace, pm->ps.origin, point, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
 		if ( trace.fraction == 1.0 ) 
 		{
 			if ( pm->cmd.forwardmove >= 0 ) 
@@ -1141,7 +1145,7 @@ void PM_GroundTraceMissed()
 static bool PM_CorrectAllSolid(traceResults* const trace)
 {
 	int			i, j, k;
-	Position3D	point;
+	Ogre::Vector3	point;
 
 	//if ( pm->debugLevel )
 		//Com_Printf("%i:allsolid\n", c_pmove);
@@ -1160,11 +1164,11 @@ static bool PM_CorrectAllSolid(traceResults* const trace)
 				/*point[0] += (float) i;
 				point[1] += (float) j;
 				point[2] += (float) k;*/
-				point += Position3D( (const float)i, (const float)j, (const float)k);
+				point += Ogre::Vector3( (const float)i, (const float)j, (const float)k);
 
 				//pm->trace (trace, point, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 				//tracefunc(trace, *(const D3DXVECTOR3* const)&point, *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, 0.0f, 0.0f), 0, pml.traceObj);
-				newtrace(trace, point, point, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+				newtrace(trace, point, point, halfExtents, D3DXToRadian(pm->ps.viewangles.y), pml.traceObj);
 
 				if ( !trace->allsolid ) 
 				{
@@ -1172,11 +1176,11 @@ static bool PM_CorrectAllSolid(traceResults* const trace)
 					point[1] = pm->ps->origin[1];
 					point[2] = pm->ps->origin[2] - 0.25;*/
 					point = pm->ps.origin;
-					point.yPos -= 0.25f;
+					point.y -= 0.25f;
 
 					//pm->trace (trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 					//tracefunc(trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, -0.25f, 0.0f), 0, pml.traceObj);
-					newtrace(trace, pm->ps.origin, point, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+					newtrace(trace, pm->ps.origin, point, halfExtents, D3DXToRadian(pm->ps.viewangles.y), pml.traceObj);
 					pml.groundTrace = *trace;
 					return true;
 				}
@@ -1195,10 +1199,11 @@ static bool PM_CorrectAllSolid(traceResults* const trace)
 static void PM_CrashLand( void ) 
 {
 	float		delta;
-	float		dist;
+	float		dist ;
 	float		vel, acc;
 	float		t;
 	float		a, b, c, den;
+	t = 4;
 
 	// decide which landing animation to use
 	/*if ( pm->ps->pm_flags & PMF_BACKWARDS_JUMP ) 
@@ -1210,10 +1215,12 @@ static void PM_CrashLand( void )
 
 	// calculate the exact velocity on landing
 	//dist = pm->ps->origin[2] - pml.previous_origin[2];
-	dist = pm->ps.origin.yPos - pml.previous_origin.yPos;
+	dist = 0;
+
+	dist = pm->ps.origin.y - pml.previous_origin.y;
 
 	//vel = pml.previous_velocity[2];
-	vel = pml.previous_velocity.yPos;
+	vel = pml.previous_velocity.y;
 
 	//acc = -pm->ps->gravity;
 	acc = -pm->ps.gravity;
@@ -1277,8 +1284,8 @@ static void PM_CrashLand( void )
 				if (pm->traceObj->incellptr->GetHasWater() )
 				{
 					const float waterHeight = pm->traceObj->incellptr->GetWaterHeight();
-					const float waterHeightSplash = waterHeight + halfExtents.yPos;
-					if (pm->ps.origin.yPos < waterHeightSplash)
+					const float waterHeightSplash = waterHeight + halfExtents.y;
+					if (pm->ps.origin.y < waterHeightSplash)
 					{
 						splashSound = true;
 					}
@@ -1337,18 +1344,18 @@ static void PM_CrashLand( void )
 
 static void PM_GroundTrace( void ) 
 {
-	Position3D		point;
+	Ogre::Vector3		point;
 	traceResults		trace;
 
 	/*point[0] = pm->ps->origin[0];
 	point[1] = pm->ps->origin[1];
 	point[2] = pm->ps->origin[2] - 0.25;*/
 	point = pm->ps.origin;
-	point.yPos -= 0.25f;
+	point.y -= 0.25f;
 
 	//pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, -0.25f, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, pm->ps.origin, point, halfExtents, D3DXToRadian(pm->ps.viewangles.yPos), pml.traceObj);
+	newtrace(&trace, pm->ps.origin, point, halfExtents, D3DXToRadian(pm->ps.viewangles.y), pml.traceObj);
 	pml.groundTrace = trace;
 
 	// do something corrective if the trace starts in a solid...
@@ -1367,7 +1374,7 @@ static void PM_GroundTrace( void )
 
 	// check if getting thrown off the ground
 	//if ( pm->ps->velocity[2] > 0 && DotProduct( pm->ps->velocity, trace.plane.normal ) > 10 ) 
-	if (pm->ps.velocity.yPos > 0 && pm->ps.velocity.dot(trace.planenormal) > 10.0f)
+	if (pm->ps.velocity.y > 0 && pm->ps.velocity.dot(trace.planenormal) > 10.0f)
 	{
 		//if ( pm->debugLevel ) 
 			//Com_Printf("%i:kickoff\n", c_pmove);
@@ -1392,7 +1399,7 @@ static void PM_GroundTrace( void )
 	
 	// slopes that are too steep will not be considered onground
 	//if ( trace.plane.normal[2] < MIN_WALK_NORMAL ) 
-	if (trace.planenormal.yPos < MIN_WALK_NORMAL)
+	if (trace.planenormal.y < MIN_WALK_NORMAL)
 	{
 		//if ( pm->debugLevel )
 			//Com_Printf("%i:steep\n", c_pmove);
@@ -1426,7 +1433,7 @@ static void PM_GroundTrace( void )
 
 		// don't do landing time if we were just going down a slope
 		//if ( pml.previous_velocity[2] < -200 ) 
-		if (pml.previous_velocity.yPos < -200)
+		if (pml.previous_velocity.y < -200)
 		{
 			// don't allow another jump for a little while
 			//pm->ps->pm_flags |= PMF_TIME_LAND;
@@ -1445,9 +1452,9 @@ static void PM_GroundTrace( void )
 static void PM_AirMove()
 {
 	//int			i;
-	Position3D		wishvel;
+	Ogre::Vector3		wishvel;
 	float		fmove, smove;
-	Position3D		wishdir;
+	Ogre::Vector3		wishdir;
 	float		wishspeed;
 	float		scale;
 	playerMove::playercmd	cmd;
@@ -1465,9 +1472,9 @@ static void PM_AirMove()
 
 	// project moves down to flat plane
 	//pml.forward[2] = 0;
-	pml.forward.yPos = 0;
+	pml.forward.y = 0;
 	//pml.right[2] = 0;
-	pml.right.yPos = 0;
+	pml.right.y = 0;
 	//VectorNormalize (pml.forward);
 	D3DXVec3Normalize( (D3DXVECTOR3* const)&(pml.forward), (const D3DXVECTOR3* const)&(pml.forward) );
 	//VectorNormalize (pml.right);
@@ -1478,7 +1485,7 @@ static void PM_AirMove()
 	wishvel = pml.forward * fmove + pml.right * smove;
 
 	//wishvel[2] = 0;
-	wishvel.yPos = 0;
+	wishvel.y = 0;
 
 	//VectorCopy (wishvel, wishdir);
 	wishdir = wishvel;
@@ -1513,9 +1520,9 @@ static void PM_NoclipMove( void )
 {
 	float	speed, drop, friction, control, newspeed;
 //	int			i;
-	Position3D		wishvel;
+	Ogre::Vector3		wishvel;
 	float		fmove, smove;
-	Position3D		wishdir;
+	Ogre::Vector3		wishdir;
 	float		wishspeed;
 	float		scale;
 
@@ -1527,7 +1534,7 @@ static void PM_NoclipMove( void )
 	speed = pm->ps.velocity.length();
 	if (speed < 1)
 		//VectorCopy (vec3_origin, pm->ps->velocity);
-		pm->ps.velocity = Position3D(0.0f, 0.0f, 0.0f);
+		pm->ps.velocity = Ogre::Vector3(0.0f, 0.0f, 0.0f);
 	else
 	{
 		drop = 0;
@@ -1556,7 +1563,7 @@ static void PM_NoclipMove( void )
 		//wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
 	wishvel = pml.forward * fmove + pml.right * smove;
 	//wishvel[2] += pm->cmd.upmove;
-	wishvel.yPos += pm->cmd.upmove;
+	wishvel.y += pm->cmd.upmove;
 
 	//VectorCopy (wishvel, wishdir);
 	wishdir = wishvel;
@@ -1605,9 +1612,9 @@ static void PM_DropTimers( void )
 static void PM_FlyMove( void ) 
 {
 	//int		i;
-	Position3D	wishvel;
+	Ogre::Vector3	wishvel;
 	float	wishspeed;
-	Position3D	wishdir;
+	Ogre::Vector3	wishdir;
 	float	scale;
 
 	// normal slowdown
@@ -1631,7 +1638,7 @@ static void PM_FlyMove( void )
 		wishvel = pml.forward * scale * pm->cmd.forwardmove + pml.right * scale * pm->cmd.rightmove;
 
 		//wishvel[2] += scale * pm->cmd.upmove;
-		wishvel.yPos += /*6.35f * */pm->cmd.upmove * scale;
+		wishvel.y += /*6.35f * */pm->cmd.upmove * scale;
 	}
 
 	//VectorCopy (wishvel, wishdir);
@@ -1648,7 +1655,7 @@ static void PM_FlyMove( void )
 
 void PM_SetWaterLevel( playerMove* const pm ) 
 {
-	Position3D point;
+	Ogre::Vector3 point;
 	//int			cont;
 	int			sample1;
 	int			sample2;
@@ -1663,14 +1670,14 @@ void PM_SetWaterLevel( playerMove* const pm )
 	/*point[0] = pm->ps->origin[0];
 	point[1] = pm->ps->origin[1];
 	point[2] = pm->ps->origin[2] + MINS_Z + 1;	*/
-	point.xPos = pm->ps.origin.xPos;
-	point.yPos = pm->ps.origin.yPos + MINS_Z + 1;
-	point.zPos = pm->ps.origin.zPos;
+	point.x = pm->ps.origin.x;
+	point.y = pm->ps.origin.y + MINS_Z + 1;
+	point.z = pm->ps.origin.z;
 
 	//cont = pm->pointcontents( point, pm->ps->clientNum );
 
 	//if ( cont & MASK_WATER ) 
-	if (pml.traceObj->incellptr->IsUnderWater(point.yPos) )
+	if (pml.traceObj->incellptr->IsUnderWater(point.y) )
 	{
 		sample2 = /*pm->ps.viewheight*/DEFAULT_VIEWHEIGHT - MINS_Z;
 		sample1 = sample2 / 2;
@@ -1678,17 +1685,17 @@ void PM_SetWaterLevel( playerMove* const pm )
 		pm->ps.watertype = CONTENTS_WATER;//cont;
 		pm->ps.waterlevel = WL_ANKLE;
 		//point[2] = pm->ps->origin[2] + MINS_Z + sample1;
-		point.yPos = pm->ps.origin.yPos + MINS_Z + sample1;
+		point.y = pm->ps.origin.y + MINS_Z + sample1;
 		//cont = pm->pointcontents (point, pm->ps->clientNum );
 		//if ( cont & MASK_WATER ) 
-		if (pml.traceObj->incellptr->IsUnderWater(point.yPos) )
+		if (pml.traceObj->incellptr->IsUnderWater(point.y) )
 		{
 			pm->ps.waterlevel = WL_WAIST;
 			//point[2] = pm->ps->origin[2] + MINS_Z + sample2;
-			point.yPos = pm->ps.origin.yPos + MINS_Z + sample2;
+			point.y = pm->ps.origin.y + MINS_Z + sample2;
 			//cont = pm->pointcontents (point, pm->ps->clientNum );
 			//if ( cont & MASK_WATER )
-			if (pml.traceObj->incellptr->IsUnderWater(point.yPos) )
+			if (pml.traceObj->incellptr->IsUnderWater(point.y) )
 				pm->ps.waterlevel = WL_UNDERWATER;
 		}
 	}
