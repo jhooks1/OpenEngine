@@ -1258,11 +1258,11 @@ static void PM_CrashLand( void )
 		return;
 
 	if (delta > 60)
-		bprintf("Far crashland: %f\n", delta);
+		printf("Far crashland: %f\n", delta);
 	else if (delta > 40)
-		bprintf("Medium crashland: %f\n", delta);
+		printf("Medium crashland: %f\n", delta);
 	else if (delta > 4)
-		bprintf("Short crashland: %f\n", delta);
+		printf("Short crashland: %f\n", delta);
 
 	if (delta > 60)
 	{
@@ -1295,15 +1295,19 @@ static void PM_CrashLand( void )
 
 		if (splashSound)
 		{
+			//Change this later-----------------------------------
+			/*
 			const namestruct ns("DefaultLandWater");
 			const SOUN* const soun = SOUN::GetSound(ns);
 			if (soun)
 			{
-				PlaySound2D(soun->soundFilename, soun->soundData->GetVolumeFloat() );
-			}
+				PlaySound2D(soun->soundFilename, soun->soundDatga->GetVolumeFloat() );
+			}*/
 		}
 		else
 		{
+			//Change this later---------------------------------
+			/*
 			namestruct defaultCreature;
 			const SNDG* const sndg = SNDG::GetFromMap(defaultCreature, SNDG::land);
 			if (sndg)
@@ -1314,7 +1318,7 @@ static void PM_CrashLand( void )
 				{
 					PlaySound2D(soun->soundFilename, soun->soundData->GetVolumeFloat() );
 				}
-			}
+			}*/
 		}
 	}
 
@@ -1476,9 +1480,9 @@ static void PM_AirMove()
 	//pml.right[2] = 0;
 	pml.right.y = 0;
 	//VectorNormalize (pml.forward);
-	D3DXVec3Normalize( (D3DXVECTOR3* const)&(pml.forward), (const D3DXVECTOR3* const)&(pml.forward) );
+	pml.forward = Ogre::Vector3(pml.forward.normalize());
+	pml.right = Ogre::Vector3(pml.right.normalize());
 	//VectorNormalize (pml.right);
-	D3DXVec3Normalize( (D3DXVECTOR3* const)&(pml.right), (const D3DXVECTOR3* const)&(pml.right) );
 
 	//for ( i = 0 ; i < 2 ; i++ )
 		//wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
