@@ -1,9 +1,29 @@
-#pragma once
 
-#include "GameMath.h"
 
-#include "Object.h"
 
+#include <btBulletDynamicsCommon.h>
+#include <btBulletCollisionCommon.h>
+#include <components/nifbullet/bullet_nif_loader.hpp>
+//#include <apps\openmw\mwworld\world.hpp>
+
+#include "physic.hpp"
+
+Physic::PhysicEngine* engine;
+enum traceWorldType
+{
+	collisionWorldTrace = 1,
+	pickWorldTrace = 2,
+	bothWorldTrace = collisionWorldTrace | pickWorldTrace
+};
+
+struct NewPhysTraceResults
+{
+	Ogre::Vector3 endPos;
+	Ogre::Vector3 hitNormal;
+	float fraction;
+	bool startSolid;
+	//const Object* hitObj;
+}; 
 struct traceResults
 {
 	Ogre::Vector3 endpos;
@@ -19,6 +39,12 @@ struct traceResults
 	bool startsolid;
 };
 
-void tracefunc(traceResults* const results, Ogre::Vector3 start, const Ogre::Vector3& end, Ogre::Vector3 rayDir, int cliphandle, const Object* const traceobj);
+template <const traceWorldType traceType>
+const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Position3D& start, const Position3D& end, 
+	const Position3D& BBExtents, const Rotation3D& rotation);
+template const bool NewPhysicsTrace<collisionWorldTrace>(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const Ogre::Vector3& rotation);
+template const bool NewPhysicsTrace<pickWorldTrace>(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const Ogre::Vector3& rotation);
+
+void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const float rotation);
 
 
