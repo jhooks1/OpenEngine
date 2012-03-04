@@ -70,7 +70,7 @@ static struct playermoveLocal
 
 	bool walking;
 
-	Object* traceObj;
+	//Object* traceObj;
 
 } pml;
 
@@ -235,7 +235,7 @@ bool	PM_SlideMove( bool gravity )
 		// see if we can make it there
 		//pm->trace ( &trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask);
 		//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&(end), *(const D3DXVECTOR3* const)&(pm->ps.velocity), 0, pml.traceObj);
-		newtrace(&trace, pm->ps.origin, end, halfExtents, Ogre::Math.DegreesToRadians (pm->ps.viewangles.y), pml.traceObj);
+		newtrace(&trace, pm->ps.origin, end, halfExtents, Ogre::Math.DegreesToRadians (pm->ps.viewangles.y));
 
 		if (trace.allsolid) 
 		{
@@ -273,7 +273,7 @@ bool	PM_SlideMove( bool gravity )
 		//
 		for ( i = 0 ; i < numplanes ; i++ ) 
 		{
-			if (trace.planenormal.dot(planes[i]) > 0.99)
+			if (trace.planenormal.dotProduct(planes[i]) > 0.99)     //OGRE::VECTOR3  ?
 			//if ( DotProduct( trace.plane.normal, planes[i] ) > 0.99 ) 
 			{
 				// pm->ps->velocity += (trace.plane.normal + pm->ps->velocity)
@@ -437,7 +437,7 @@ int PM_StepSlideMove( bool gravity )
 	//pm->trace (&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, start_o, down, , 0, pml.scene);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&start_o, *(const D3DXVECTOR3* const)&down, D3DXVECTOR3(0.0f, -STEPSIZE, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, start_o, down, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
+	newtrace(&trace, start_o, down, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y));
 	
 	// up = vec3(0, 0, 1)
 	//VectorSet(up, 0, 0, 1);
@@ -446,7 +446,7 @@ int PM_StepSlideMove( bool gravity )
 	// never step up when you still have up velocity
 	//if ( pm->ps->velocity[2] > 0 && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7)) 
 	if (pm->ps.velocity.y > 0 && (
-		trace.fraction == 1.0 || trace.planenormal.dot(up) < 0.7
+		trace.fraction == 1.0 || trace.planenormal.dotProduct(up) < 0.7
 		) )
 		return 2;
 
@@ -467,7 +467,7 @@ int PM_StepSlideMove( bool gravity )
 	// test the player position if they were a stepheight higher
 	//pm->trace (&trace, start_o, pm->mins, pm->maxs, up, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&start_o, *(const D3DXVECTOR3* const)&up, D3DXVECTOR3(0.0f, STEPSIZE, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, start_o, up, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
+	newtrace(&trace, start_o, up, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y));
 	if ( trace.allsolid ) 
 	{
 		//if ( pm->debugLevel ) 
@@ -498,7 +498,7 @@ int PM_StepSlideMove( bool gravity )
 
 	//pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&down, D3DXVECTOR3(0.0f, -STEPSIZE, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, pm->ps.origin, down, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
+	newtrace(&trace, pm->ps.origin, down, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y));
 	if ( !trace.allsolid )
 		//VectorCopy (trace.endpos, pm->ps->origin);
 		pm->ps.origin = trace.endpos;
@@ -734,6 +734,8 @@ static void PM_WaterMove( playerMove* const pm )
 
 	if (pm->cmd.forwardmove || pm->cmd.rightmove)
 	{
+		//NEEDS TO BE REWRITTEN FOR OGRE TIME---------------------------------------------------
+		/*
 		static const TimeTicks footstep_duration = GetTimeFreq(); // make each splash last 1.0s
 		static TimeTicks lastStepTime = 0;
 		const TimeTicks thisStepTime = GetTimeQPC();
@@ -746,6 +748,8 @@ static void PM_WaterMove( playerMove* const pm )
 				lastStepTime = thisStepTime + footstep_duration;
 
 			lastWasLeft = !lastWasLeft;
+		*/
+		//-----------------jhooks1
 
 			/*
 			namestruct defaultCreature;
@@ -760,7 +764,7 @@ static void PM_WaterMove( playerMove* const pm )
 				}
 			}*/
 			//Sound, ignore for now -- jhooks1
-		}
+		//}
 	}
 
 	scale = PM_CmdScale( &pm->cmd );
@@ -859,7 +863,13 @@ static void PM_WalkMove( playerMove* const pmove )
 		bool step_underwater = false;
 		if (pmove->traceObj)
 		{
-			if (pmove->traceObj->incellptr)
+
+
+			//jhooks1 - Water handling, deal with later
+
+
+
+			/*if (pmove->traceObj->incellptr)
 			{
 				if (pmove->traceObj->incellptr->GetHasWater() )
 				{
@@ -868,9 +878,10 @@ static void PM_WalkMove( playerMove* const pmove )
 					if (pmove->ps.origin.y < waterSoundStepHeight)
 						step_underwater = true;
 				}
-			}
+			}*/
 		}
 
+		/*
 		static const TimeTicks footstep_duration = GetTimeFreq() / 2; // make each footstep last 500ms
 		static TimeTicks lastStepTime = 0;
 		const TimeTicks thisStepTime = GetTimeQPC();
@@ -883,6 +894,7 @@ static void PM_WalkMove( playerMove* const pmove )
 				lastStepTime = thisStepTime + footstep_duration;
 
 			lastWasLeft = !lastWasLeft;
+			*/
 
 			if (step_underwater)
 			{
@@ -910,7 +922,7 @@ static void PM_WalkMove( playerMove* const pmove )
 				}*/
 			}
 		}
-	}
+
 
 	PM_Friction ();
 
@@ -1121,7 +1133,7 @@ void PM_GroundTraceMissed()
 
 		//pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 		//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, -64.0f, 0.0f), 0, pml.traceObj);
-		newtrace(&trace, pm->ps.origin, point, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y), pml.traceObj);
+		newtrace(&trace, pm->ps.origin, point, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y));
 		if ( trace.fraction == 1.0 ) 
 		{
 			if ( pm->cmd.forwardmove >= 0 ) 
@@ -1168,7 +1180,7 @@ static bool PM_CorrectAllSolid(traceResults* const trace)
 
 				//pm->trace (trace, point, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 				//tracefunc(trace, *(const D3DXVECTOR3* const)&point, *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, 0.0f, 0.0f), 0, pml.traceObj);
-				newtrace(trace, point, point, halfExtents, D3DXToRadian(pm->ps.viewangles.y), pml.traceObj);
+				newtrace(trace, point, point, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y));
 
 				if ( !trace->allsolid ) 
 				{
@@ -1180,7 +1192,7 @@ static bool PM_CorrectAllSolid(traceResults* const trace)
 
 					//pm->trace (trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 					//tracefunc(trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, -0.25f, 0.0f), 0, pml.traceObj);
-					newtrace(trace, pm->ps.origin, point, halfExtents, D3DXToRadian(pm->ps.viewangles.y), pml.traceObj);
+					newtrace(trace, pm->ps.origin, point, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y));
 					pml.groundTrace = *trace;
 					return true;
 				}
@@ -1266,24 +1278,25 @@ static void PM_CrashLand( void )
 
 	if (delta > 60)
 	{
+		/*
 		static const namestruct healthDamage("Health Damage");
 		const SOUN* const soun = SOUN::GetSound(healthDamage);
 		if (soun)
 		{
 			PlaySound2D(soun->soundFilename, soun->soundData->GetVolumeFloat() );
-		}
+		}*/
 	}
 
 	if (delta > 3) // We need at least a short crashland to proc the sound effects:
 	{
 		bool splashSound = false;
-		if (pm->traceObj)
+		if (true)
 		{
-			if (pm->traceObj->incellptr)
+			if (mCurrentCell->cell)
 			{
-				if (pm->traceObj->incellptr->GetHasWater() )
+				if (mCurrentCell->cell->data.flags & mCurrentCell->cell->HasWater)
 				{
-					const float waterHeight = pm->traceObj->incellptr->GetWaterHeight();
+					const float waterHeight = mCurrentCell->cell->water;
 					const float waterHeightSplash = waterHeight + halfExtents.y;
 					if (pm->ps.origin.y < waterHeightSplash)
 					{
@@ -1359,7 +1372,7 @@ static void PM_GroundTrace( void )
 
 	//pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 	//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&point, D3DXVECTOR3(0.0f, -0.25f, 0.0f), 0, pml.traceObj);
-	newtrace(&trace, pm->ps.origin, point, halfExtents, D3DXToRadian(pm->ps.viewangles.y), pml.traceObj);
+	newtrace(&trace, pm->ps.origin, point, halfExtents, Ogre::Math::DegreesToRadians(pm->ps.viewangles.y));
 	pml.groundTrace = trace;
 
 	// do something corrective if the trace starts in a solid...
@@ -1378,7 +1391,7 @@ static void PM_GroundTrace( void )
 
 	// check if getting thrown off the ground
 	//if ( pm->ps->velocity[2] > 0 && DotProduct( pm->ps->velocity, trace.plane.normal ) > 10 ) 
-	if (pm->ps.velocity.y > 0 && pm->ps.velocity.dot(trace.planenormal) > 10.0f)
+	if (pm->ps.velocity.y > 0 && pm->ps.velocity.dotProduct(trace.planenormal) > 10.0f)
 	{
 		//if ( pm->debugLevel ) 
 			//Com_Printf("%i:kickoff\n", c_pmove);
@@ -1480,8 +1493,8 @@ static void PM_AirMove()
 	//pml.right[2] = 0;
 	pml.right.y = 0;
 	//VectorNormalize (pml.forward);
-	pml.forward = Ogre::Vector3(pml.forward.normalize());
-	pml.right = Ogre::Vector3(pml.right.normalize());
+	pml.forward = Ogre::Vector3(pml.forward.normalise());
+	pml.right = Ogre::Vector3(pml.right.normalise());
 	//VectorNormalize (pml.right);
 
 	//for ( i = 0 ; i < 2 ; i++ )
@@ -1633,7 +1646,7 @@ static void PM_FlyMove( void )
 		/*wishvel[0] = 0;
 		wishvel[1] = 0;
 		wishvel[2] = 0;*/
-		wishvel.clear();
+		wishvel = Ogre::Vector3(0,0,0);
 	} 
 	else 
 	{
@@ -1765,7 +1778,7 @@ void PmoveSingle (playerMove* const pmove)
 
 	// Aedra-specific code:
 	//pml.scene = global_lastscene;
-	pml.traceObj = pmove->traceObj;
+	
 
 	// End Aedra-specific code
 
@@ -1987,18 +2000,19 @@ void Pmove (playerMove* const pmove)
 
 		pmove->cmd.serverTime = pmove->ps.commandTime + msec;
 
-		if (pmove->traceObj->incellptr->IsCellInterior() )
+		if (mCurrentCell->cell->data.flags & mCurrentCell->cell->Interior)
 		{
 			PmoveSingle( pmove );
 		}
 		else
 		{
 			PmoveSingle( pmove );
+			/*
 			std::map<CellCoords, CELL* const>::const_iterator it = ExtCellLookup.find(PositionToCell(pmove->ps.origin) );
 			if (it != ExtCellLookup.end() )
 			{
 				pmove->traceObj->incellptr = it->second;
-			}
+			}*/
 		}
 
 		//if ( pmove->ps->pm_flags & PMF_JUMP_HELD ) 

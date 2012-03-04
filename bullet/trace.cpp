@@ -27,6 +27,16 @@ extern std::map<CellCoords, LAND* const> LANDLookup;
 
 #include "NewPhysics.h"
 
+bool TestPointAgainstAabb2(const btVector3 &aabbMin1, const btVector3 &aabbMax1,
+								const btVector3 &point)
+{
+	bool overlap = true;
+	overlap = (aabbMin1.getX() > point.getX() || aabbMax1.getX() < point.getX()) ? false : overlap;
+	overlap = (aabbMin1.getZ() > point.getZ() || aabbMax1.getZ() < point.getZ()) ? false : overlap;
+	overlap = (aabbMin1.getY() > point.getY() || aabbMax1.getY() < point.getY()) ? false : overlap;
+	return overlap;
+}
+
 void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBHalfExtents, const float rotation)  //Traceobj was a Aedra Object
 {
 	//if (!traceobj)
@@ -53,7 +63,7 @@ void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogr
 	const Cell* const traceCell = mCurrentCell->cell->//traceobj->incellptr;  //Get current OpenMW cell
 
 	// If outside and underground, we're solid
-	if (traceCell.isInteriror)
+	if (!traceCell.isInteriror)
 	{
 		const Ogre::Vector3 height = GetGroundPosition(start, CellCoords(traceCell->data->gridX, traceCell->data->gridY) );
 		if (start.yPos - height.yPos < (-2.0f * BBHalfExtents.yPos) )
@@ -102,11 +112,7 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 	//if (!traceobj->incellptr)
 	//	return false;
 
-	
 
-#ifdef USE_CUSTOM_CONVEX_CALLBACK
-	customHitsList.clear();
-#endif
 
 	const btVector3 btstart(start.x, start.y, start.z);
 	const btVector3 btend(end.x, end.y, end.z);
@@ -116,11 +122,8 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 	const btTransform from(btrot, btstart);
 	const btTransform to(btrot, btend);	
 
-#ifdef USE_CUSTOM_CONVEX_CALLBACK
-	CustomConvexResultCallback 
-#else
+
 	btCollisionWorld::ClosestConvexResultCallback
-#endif
 		newTraceCallback(btstart, btend);
 
 	newTraceCallback.m_collisionFilterMask = (traceType == collisionWorld
@@ -128,20 +131,7 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 
 	dynamicsWorld->convexSweepTest(&newshape, from, to, newTraceCallback);
 	
-#ifdef USE_CUSTOM_CONVEX_CALLBACK
-	if (!customHitsList.empty() )
-	{
-		const unsigned nHits = (const unsigned)customHitsList.size();
-		bprintf("nHits: %u: ", nHits);
-		for (unsigned x = 0; x < nHits; ++x)
-		{
-			bprintf("(F: %f, P: %f, %f, %f, N: %f, %f, %f) ", customHitsList[x].m_closestHitFraction,
-				customHitsList[x].m_hitPointWorld.x(), customHitsList[x].m_hitPointWorld.y(), customHitsList[x].m_hitPointWorld.z(),
-				customHitsList[x].m_hitNormalWorld.x(), customHitsList[x].m_hitNormalWorld.y(), customHitsList[x].m_hitNormalWorld.z() );
-		}
-		bprintf("\n");
-	}
-#endif
+
 
 	// Copy the hit data over to our trace results struct:
 	out->fraction = newTraceCallback.m_closestHitFraction;
@@ -149,9 +139,9 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 	Ogre::Vector3& outhitnormal = out->hitNormal;
 	const btVector3& tracehitnormal = newTraceCallback.m_hitNormalWorld;
 
-	outhitnormal.xPos = tracehitnormal.x();
-	outhitnormal.yPos = tracehitnormal.y();
-	outhitnormal.zPos = tracehitnormal.z();
+	outhitnormal.x = tracehitnormal.x();
+	outhitnormal.y = tracehitnormal.y();
+	outhitnormal.z = tracehitnormal.z();
 
 	Ogre::Vector3& outhitpos = out->endPos;
 	const btVector3& tracehitpos = newTraceCallback.m_hitPointWorld;
@@ -180,7 +170,7 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 		else
 		{
 			btVector3 aabbMin, aabbMax;
-			world.sweepBP->getBroadphaseAabb(aabbMin, aabbMax);
+			engine.broadphase->getBroadphaseAabb(aabbMin, aabbMax);
 			if (!TestPointAgainstAabb2(aabbMin, aabbMax, *(const btVector3* const)&(start) ) )
 			{
 				out->startSolid = true;
@@ -190,23 +180,7 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 
 	const bool hasHit = newTraceCallback.hasHit();
 
-	if (hasHit)
-	{
-		out->hitObj = (const Object* const)(newTraceCallback.m_hitCollisionObject->getUserPointer() );
-	}
-	else
-	{
-		out->hitObj = NULL;
-	}
 
-#ifdef VIEW_CAST_HITS
-	if (hasHit)
-	{
-		Position3D hit;
-		hit = out->endPos;
-		hitPos.push_back(hit);
-	}
-#endif
 
 	
 	return hasHit;

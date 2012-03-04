@@ -8,7 +8,7 @@
 
 #include "physic.hpp"
 
-Physic::PhysicEngine* engine;
+OEngine::Physic::PhysicEngine* engine;
 enum traceWorldType
 {
 	collisionWorldTrace = 1,
@@ -38,6 +38,9 @@ struct traceResults
 	bool allsolid;
 	bool startsolid;
 };
+
+bool TestPointAgainstAabb2(const btVector3 &aabbMin1, const btVector3 &aabbMax1,
+								const btVector3 &point)
 
 template <const traceWorldType traceType>
 const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Position3D& start, const Position3D& end, 

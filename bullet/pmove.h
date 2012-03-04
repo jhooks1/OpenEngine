@@ -95,19 +95,19 @@ struct playerMove
 
 			delta_angles[0] = delta_angles[1] = delta_angles[2] = 0;
 
-			lastframe_origin.clear();
-			lerp_multiplier.clear();
+			lastframe_origin.x = lastframe_origin.y = lastframe_origin.z = 0;
+			lerp_multiplier.x = lerp_multiplier.y = lerp_multiplier.z = 0;
 		}
 
 		inline void SpeedUp(void)
 		{
-			bprintf("speed up to: %f\n", speed);
+			printf("speed up to: %f\n", speed);
 			speed *= 1.25f;
 		}
 
 		inline void SpeedDown(void)
 		{
-			bprintf("speed down to %f\n", speed);
+			printf("speed down to %f\n", speed);
 			speed /= 1.25f;
 		}
 
@@ -133,7 +133,7 @@ struct playerMove
 
 		pmtype_t move_type;
 
-		TimeTicks last_compute_time;
+		float last_compute_time;
 		Ogre::Vector3 lastframe_origin;
 		Ogre::Vector3 lerp_multiplier;
 	} ps;
@@ -181,7 +181,7 @@ struct playerMove
 	int pmove_msec;
 	bool pmove_fixed;
 
-	Object* traceObj;
+	//Object* traceObj;
 };
 
 void Pmove (playerMove* const pmove);
