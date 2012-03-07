@@ -8,6 +8,8 @@ Quake 3 Arena is copyright (C) 1999-2005 Id Software, Inc.
 #include <Ogre.h>
 #include <OgreMath.h>
 #include <float.h>
+#include <components/esm_store/cell_store.hpp>
+#include <apps/openmw/mwworld/ptr.hpp>
 
 //#include "GameMath.h"
 //#include "GameTime.h"
@@ -180,7 +182,7 @@ struct playerMove
 	int msec;
 	int pmove_msec;
 	bool pmove_fixed;
-
+	 MWWorld::Ptr::CellStore* mCurrentCell;
 	//Object* traceObj;
 };
 

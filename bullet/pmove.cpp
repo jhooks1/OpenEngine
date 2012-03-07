@@ -39,7 +39,7 @@ static playerMove* pm = NULL;
 
 static struct playermoveLocal
 {
-	playermoveLocal() : frametime(1.0f / 20.0f), groundPlane(true), traceObj(NULL), walking(true), msec(50)
+	playermoveLocal() : frametime(1.0f / 20.0f), groundPlane(true), walking(true), msec(50)
 	{
 		forward = Ogre::Vector3(0.0f, 0.0f, 0.0f);
 		right = Ogre::Vector3(0.0f, 0.0f, 0.0f);
@@ -69,7 +69,7 @@ static struct playermoveLocal
 	bool groundPlane; // if we're standing on a groundplane this frame
 
 	bool walking;
-
+	MWWorld::Ptr::CellStore* mCurrentCell;
 	//Object* traceObj;
 
 } pml;
@@ -235,7 +235,7 @@ bool	PM_SlideMove( bool gravity )
 		// see if we can make it there
 		//pm->trace ( &trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask);
 		//tracefunc(&trace, *(const D3DXVECTOR3* const)&(pm->ps.origin), *(const D3DXVECTOR3* const)&(end), *(const D3DXVECTOR3* const)&(pm->ps.velocity), 0, pml.traceObj);
-		newtrace(&trace, pm->ps.origin, end, halfExtents, Ogre::Math.DegreesToRadians (pm->ps.viewangles.y));
+		newtrace(&trace, pm->ps.origin, end, halfExtents, Ogre::Math::DegreesToRadians (pm->ps.viewangles.y));
 
 		if (trace.allsolid) 
 		{
@@ -641,7 +641,7 @@ static void PM_Accelerate( Ogre::Vector3& wishdir, float wishspeed, float accel 
 
 	// currentspeed = pm->ps->velocity dot wishdir
 	//currentspeed = DotProduct (pm->ps->velocity, wishdir);
-	currentspeed = pm->ps.velocity.dot(wishdir);
+	currentspeed = pm->ps.velocity.dotProduct(wishdir);
 
 	addspeed = wishspeed - currentspeed;
 	if (addspeed <= 0) 
@@ -861,8 +861,8 @@ static void PM_WalkMove( playerMove* const pmove )
 	if (pmove->cmd.forwardmove || pmove->cmd.rightmove)
 	{
 		bool step_underwater = false;
-		if (pmove->traceObj)
-		{
+		//if (pmove->traceObj)
+		//{
 
 
 			//jhooks1 - Water handling, deal with later
@@ -879,7 +879,7 @@ static void PM_WalkMove( playerMove* const pmove )
 						step_underwater = true;
 				}
 			}*/
-		}
+		//}
 
 		/*
 		static const TimeTicks footstep_duration = GetTimeFreq() / 2; // make each footstep last 500ms
@@ -1292,11 +1292,11 @@ static void PM_CrashLand( void )
 		bool splashSound = false;
 		if (true)
 		{
-			if (mCurrentCell->cell)
+			if (pm->mCurrentCell)
 			{
-				if (mCurrentCell->cell->data.flags & mCurrentCell->cell->HasWater)
+				if (pm->mCurrentCell->cell->data.flags & pm->mCurrentCell->cell->HasWater)
 				{
-					const float waterHeight = mCurrentCell->cell->water;
+					const float waterHeight = pm->mCurrentCell->cell->water;
 					const float waterHeightSplash = waterHeight + halfExtents.y;
 					if (pm->ps.origin.y < waterHeightSplash)
 					{
@@ -1692,9 +1692,9 @@ void PM_SetWaterLevel( playerMove* const pm )
 	point.z = pm->ps.origin.z;
 
 	//cont = pm->pointcontents( point, pm->ps->clientNum );
-
+	bool checkWater = (pml.mCurrentCell->cell->data.flags & pml.mCurrentCell->cell->HasWater) && pml.mCurrentCell->cell->water > point.y;
 	//if ( cont & MASK_WATER ) 
-	if (pml.traceObj->incellptr->IsUnderWater(point.y) )
+	if ( checkWater)
 	{
 		sample2 = /*pm->ps.viewheight*/DEFAULT_VIEWHEIGHT - MINS_Z;
 		sample1 = sample2 / 2;
@@ -1705,14 +1705,14 @@ void PM_SetWaterLevel( playerMove* const pm )
 		point.y = pm->ps.origin.y + MINS_Z + sample1;
 		//cont = pm->pointcontents (point, pm->ps->clientNum );
 		//if ( cont & MASK_WATER ) 
-		if (pml.traceObj->incellptr->IsUnderWater(point.y) )
+		if (checkWater)
 		{
 			pm->ps.waterlevel = WL_WAIST;
 			//point[2] = pm->ps->origin[2] + MINS_Z + sample2;
 			point.y = pm->ps.origin.y + MINS_Z + sample2;
 			//cont = pm->pointcontents (point, pm->ps->clientNum );
 			//if ( cont & MASK_WATER )
-			if (pml.traceObj->incellptr->IsUnderWater(point.y) )
+			if (checkWater )
 				pm->ps.waterlevel = WL_UNDERWATER;
 		}
 	}
@@ -1781,7 +1781,7 @@ void PmoveSingle (playerMove* const pmove)
 	
 
 	// End Aedra-specific code
-
+	pml.mCurrentCell = pmove->mCurrentCell;
 #ifdef _DEBUG
 	if (!pml.traceObj)
 		__debugbreak();
@@ -2000,7 +2000,7 @@ void Pmove (playerMove* const pmove)
 
 		pmove->cmd.serverTime = pmove->ps.commandTime + msec;
 
-		if (mCurrentCell->cell->data.flags & mCurrentCell->cell->Interior)
+		if (pmove->mCurrentCell->cell->data.flags & pmove->mCurrentCell->cell->Interior)
 		{
 			PmoveSingle( pmove );
 		}
@@ -2019,8 +2019,8 @@ void Pmove (playerMove* const pmove)
 			//pmove->cmd.upmove = 20;
 	}
 
-	pmove->ps.last_compute_time = GetTimeQPC();
-	pmove->ps.lerp_multiplier = (pmove->ps.origin - pmove->ps.lastframe_origin);// * (1.000 / 31.0);
+	//pmove->ps.last_compute_time = GetTimeQPC();
+	//pmove->ps.lerp_multiplier = (pmove->ps.origin - pmove->ps.lastframe_origin);// * (1.000 / 31.0);
 
 	//PM_CheckStuck();
 

@@ -2,16 +2,11 @@
 
 #include "trace.h"
 
-#include "DrawObject.h"
-
-#include "PerFrameFilter.h"
 
 #include <map>
-#include "..\..\ESMParser\ESMParser\LAND.h"
 extern int isShowCollision;
 extern unsigned collisionTri;
-extern std::map<CellCoords, CELL* const> ExtCellLookup;
-extern std::map<CellCoords, LAND* const> LANDLookup;
+
 
 #include "GetGroundPosition.h"
 
