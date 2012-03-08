@@ -39,15 +39,13 @@ struct traceResults
 	bool startsolid;
 };
 
-bool TestPointAgainstAabb2(const btVector3 &aabbMin1, const btVector3 &aabbMax1,
-								const btVector3 &point);
+
 
 template <const traceWorldType traceType>
-const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, 
-	const Ogre::Vector3& BBExtents, const Ogre::Vector3& rotation);
+const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const Ogre::Vector3& rotation);
 template const bool NewPhysicsTrace<collisionWorldTrace>(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const Ogre::Vector3& rotation);
 template const bool NewPhysicsTrace<pickWorldTrace>(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const Ogre::Vector3& rotation);
 
-void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const float rotation);
+void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBExtents, const float rotation, bool isInterior);
 
 

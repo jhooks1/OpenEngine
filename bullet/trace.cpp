@@ -1,6 +1,7 @@
 #pragma once
 
 #include "trace.h"
+#include "pmove.h"
 
 
 #include <map>
@@ -8,31 +9,11 @@ extern int isShowCollision;
 extern unsigned collisionTri;
 
 
-#include "GetGroundPosition.h"
 
-#include "GetGroundIntersect.h"
 
-#include "IntersectAABB_Ray.h"
 
-#include "ObjectsIntersectingBox.h"
 
-#include "Scene.h"
-
-#include "..\..\ESMParser\ESMParser\CELL.h"
-
-#include "NewPhysics.h"
-
-bool TestPointAgainstAabb2(const btVector3 &aabbMin1, const btVector3 &aabbMax1,
-								const btVector3 &point)
-{
-	bool overlap = true;
-	overlap = (aabbMin1.getX() > point.getX() || aabbMax1.getX() < point.getX()) ? false : overlap;
-	overlap = (aabbMin1.getZ() > point.getZ() || aabbMax1.getZ() < point.getZ()) ? false : overlap;
-	overlap = (aabbMin1.getY() > point.getY() || aabbMax1.getY() < point.getY()) ? false : overlap;
-	return overlap;
-}
-
-void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBHalfExtents, const float rotation)  //Traceobj was a Aedra Object
+void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBHalfExtents, const float rotation, bool isInterior)  //Traceobj was a Aedra Object
 {
 	//if (!traceobj)
 	//	return;
@@ -55,10 +36,9 @@ void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogr
 		results->startsolid = false;
 
 	//results->allsolid = out.startSolid;
-	const Cell* const traceCell = mCurrentCell->cell->//traceobj->incellptr;  //Get current OpenMW cell
 
 	// If outside and underground, we're solid
-	if (!traceCell.isInteriror)
+	/*if (isInterior)
 	{
 		const Ogre::Vector3 height = GetGroundPosition(start, CellCoords(traceCell->data->gridX, traceCell->data->gridY) );
 		if (start.yPos - height.yPos < (-2.0f * BBHalfExtents.yPos) )
@@ -67,13 +47,13 @@ void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogr
 		}
 		else
 			results->allsolid = false;
-	}
+	}*/
 
 	// If inside and out of the tree, we're solid
-	else
-	{
+	//else
+	//{
 		results->allsolid = out.startSolid;
-	}
+	//}
 
 	if (!hasHit)
 	{
@@ -141,9 +121,9 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 	Ogre::Vector3& outhitpos = out->endPos;
 	const btVector3& tracehitpos = newTraceCallback.m_hitPointWorld;
 
-	outhitpos.xPos = tracehitpos.x();
-	outhitpos.yPos = tracehitpos.y();
-	outhitpos.zPos = tracehitpos.z();
+	outhitpos.x = tracehitpos.x();
+	outhitpos.y = tracehitpos.y();
+	outhitpos.z= tracehitpos.z();
 
 	// StartSolid test:
 	{
@@ -165,7 +145,7 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 		else
 		{
 			btVector3 aabbMin, aabbMax;
-			engine.broadphase->getBroadphaseAabb(aabbMin, aabbMax);
+			engine->broadphase->getBroadphaseAabb(aabbMin, aabbMax);
 			if (!TestPointAgainstAabb2(aabbMin, aabbMax, *(const btVector3* const)&(start) ) )
 			{
 				out->startSolid = true;

@@ -175,14 +175,16 @@ struct playerMove
 		CMDstateChange procDropping;
 	} cmd;
 
-	playerMove() : msec(50), pmove_fixed(false), pmove_msec(50)
+	playerMove() : msec(50), pmove_fixed(false), pmove_msec(50), waterHeight(0), isInterior(true), hasWater(false)
 	{
 	}
 
 	int msec;
 	int pmove_msec;
 	bool pmove_fixed;
-	 MWWorld::Ptr::CellStore* mCurrentCell;
+	int waterHeight;
+	bool hasWater;
+	bool isInterior;
 	//Object* traceObj;
 };
 
