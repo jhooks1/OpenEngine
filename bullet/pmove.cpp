@@ -4,14 +4,10 @@ which was released under the GNU GPL (v2) in 2005.
 Quake 3 Arena is copyright (C) 1999-2005 Id Software, Inc.
 */
 
-#pragma once
-
-#define COMPILING_PMOVE
-
 
 #include "pmove.h"
 
-#include "trace.h"
+
 
 //#include "bprintf.h"
 
@@ -2028,4 +2024,4 @@ void Pmove (playerMove* const pmove)
 
 }
 
-#undef COMPILING_PMOVE
+

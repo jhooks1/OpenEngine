@@ -1,21 +1,22 @@
+#ifndef OENGINE_BULLET_PMOVE_H
+#define OENGINE_BULLET_PMOVE_H
 /*
 This source file is a *modified* version of various header files from the Quake 3 Arena source code,
 which was released under the GNU GPL (v2) in 2005.
 Quake 3 Arena is copyright (C) 1999-2005 Id Software, Inc.
 */
 
-#pragma once
 #include <Ogre.h>
 #include <OgreMath.h>
 #include <float.h>
-#include <components/esm_store/cell_store.hpp>
-#include <apps/openmw/mwworld/ptr.hpp>
+#include "trace.h"
+//#include "physic.hpp"
+
 
 //#include "GameMath.h"
 //#include "GameTime.h"
 
 // Forwards-declare it!
-struct Object;
 
 /*#ifndef COMPILING_PMOVE
 #include "Scene.h"
@@ -81,6 +82,8 @@ enum waterlevel_t : unsigned char
 	WL_WAIST,
 	WL_UNDERWATER
 };
+
+ static OEngine::Physic::PhysicEngine* engine = 0;
 
 //#include "bprintf.h"
 
@@ -191,3 +194,4 @@ struct playerMove
 void Pmove (playerMove* const pmove);
 void Ext_UpdateViewAngles(playerMove* const pm);
 void AngleVectors( const Ogre::Vector3& angles, Ogre::Vector3* const forward, Ogre::Vector3* const right, Ogre::Vector3* const up) ;
+#endif

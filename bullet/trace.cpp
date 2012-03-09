@@ -1,12 +1,10 @@
-#pragma once
 
 #include "trace.h"
-#include "pmove.h"
+
 
 
 #include <map>
-extern int isShowCollision;
-extern unsigned collisionTri;
+
 
 
 
@@ -28,7 +26,7 @@ void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogr
 	//const Position3D nudgestart = start;
 
 	NewPhysTraceResults out;
-	const bool hasHit = NewPhysicsTrace<collisionWorldTrace>(&out, start, end, BBHalfExtents, Ogre::Vector3(0.0f, rotation, 0.0f));
+	const bool hasHit = NewPhysicsTrace<collisionWorldTrace>(&out, start, end, BBHalfExtents, Ogre::Vector3(0.0f, rotation, 0.0f), isInterior);
 
 	if (out.fraction < 0.001f)
 		results->startsolid = true;
@@ -82,7 +80,7 @@ void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogr
 
 template <const traceWorldType traceType>
 const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, 
-	const Ogre::Vector3& BBHalfExtents, const Ogre::Vector3& rotation)
+	const Ogre::Vector3& BBHalfExtents, const Ogre::Vector3& rotation, bool isInterior)
 {
 	//if (!traceobj->incellptr)
 	//	return false;
@@ -101,10 +99,9 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 	btCollisionWorld::ClosestConvexResultCallback
 		newTraceCallback(btstart, btend);
 
-	newTraceCallback.m_collisionFilterMask = (traceType == collisionWorld
-		Trace) ? Only_Collision : Only_Pickup;
+	newTraceCallback.m_collisionFilterMask = (traceType == collisionWorldTrace) ? Only_Collision : Only_Pickup;
 
-	dynamicsWorld->convexSweepTest(&newshape, from, to, newTraceCallback);
+	engine->dynamicsWorld->convexSweepTest(&newshape, from, to, newTraceCallback);
 	
 
 
@@ -137,7 +134,7 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 		//out->startSolid = crb.hit;
 
 		// If outside and underground, we're solid
-		if (mCurrentCell->cell->data.flags)   //Check if we are interior
+		if (!isInterior)   //Check if we are interior
 		{
 		}
 
