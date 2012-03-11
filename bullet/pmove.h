@@ -10,7 +10,7 @@ Quake 3 Arena is copyright (C) 1999-2005 Id Software, Inc.
 #include <OgreMath.h>
 #include <float.h>
 #include "trace.h"
-//#include "physic.hpp"
+#include "physic.hpp"
 
 
 //#include "GameMath.h"
@@ -83,7 +83,6 @@ enum waterlevel_t : unsigned char
 	WL_UNDERWATER
 };
 
- static OEngine::Physic::PhysicEngine* engine = 0;
 
 //#include "bprintf.h"
 
@@ -189,6 +188,7 @@ struct playerMove
 	bool hasWater;
 	bool isInterior;
 	//Object* traceObj;
+	OEngine::Physic::PhysicEngine* mEngine;
 };
 
 void Pmove (playerMove* const pmove);

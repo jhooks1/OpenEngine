@@ -11,8 +11,9 @@
 
 
 
-void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBHalfExtents, const float rotation, bool isInterior)  //Traceobj was a Aedra Object
+void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogre::Vector3& end, const Ogre::Vector3& BBHalfExtents, const float rotation, bool isInterior, OEngine::Physic::PhysicEngine* enginePass)  //Traceobj was a Aedra Object
 {
+
 	//if (!traceobj)
 	//	return;
 
@@ -26,7 +27,7 @@ void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogr
 	//const Position3D nudgestart = start;
 
 	NewPhysTraceResults out;
-	const bool hasHit = NewPhysicsTrace<collisionWorldTrace>(&out, start, end, BBHalfExtents, Ogre::Vector3(0.0f, rotation, 0.0f), isInterior);
+	const bool hasHit = NewPhysicsTrace<collisionWorldTrace>(&out, start, end, BBHalfExtents, Ogre::Vector3(0.0f, rotation, 0.0f), isInterior, enginePass);
 
 	if (out.fraction < 0.001f)
 		results->startsolid = true;
@@ -80,7 +81,7 @@ void newtrace(traceResults* const results, const Ogre::Vector3& start, const Ogr
 
 template <const traceWorldType traceType>
 const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& start, const Ogre::Vector3& end, 
-	const Ogre::Vector3& BBHalfExtents, const Ogre::Vector3& rotation, bool isInterior)
+	const Ogre::Vector3& BBHalfExtents, const Ogre::Vector3& rotation, bool isInterior, OEngine::Physic::PhysicEngine* enginePass)
 {
 	//if (!traceobj->incellptr)
 	//	return false;
@@ -100,10 +101,8 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 		newTraceCallback(btstart, btend);
 
 	newTraceCallback.m_collisionFilterMask = (traceType == collisionWorldTrace) ? Only_Collision : Only_Pickup;
-
-	engine->dynamicsWorld->convexSweepTest(&newshape, from, to, newTraceCallback);
 	
-
+	enginePass->dynamicsWorld->convexSweepTest(&newshape, from, to, newTraceCallback);
 
 	// Copy the hit data over to our trace results struct:
 	out->fraction = newTraceCallback.m_closestHitFraction;
@@ -142,7 +141,7 @@ const bool NewPhysicsTrace(NewPhysTraceResults* const out, const Ogre::Vector3& 
 		else
 		{
 			btVector3 aabbMin, aabbMax;
-			engine->broadphase->getBroadphaseAabb(aabbMin, aabbMax);
+			enginePass->broadphase->getBroadphaseAabb(aabbMin, aabbMax);
 			if (!TestPointAgainstAabb2(aabbMin, aabbMax, *(const btVector3* const)&(start) ) )
 			{
 				out->startSolid = true;
